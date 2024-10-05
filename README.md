@@ -1,6 +1,6 @@
-# OpenAI Realtime Console
+# Sketch2App but with voice instead
 
-The OpenAI Realtime Console is intended as an inspector and interactive API reference
+Fork of the OpenAI Realtime Console with modifications to edit a live codesandbox voice-interactive using API reference
 for the OpenAI Realtime API. It comes packaged with two utility libraries,
 [openai/openai-realtime-api-beta](https://github.com/openai/openai-realtime-api-beta)
 that acts as a **Reference Client** (for browser and Node.js) and

@@ -22,27 +22,9 @@ import { WavRenderer } from '../utils/wav_renderer';
 import { X, Edit, Zap, ArrowUp, ArrowDown } from 'react-feather';
 import { Button } from '../components/button/Button';
 import { Toggle } from '../components/toggle/Toggle';
-import { Map } from '../components/Map';
-
+import Sandpack from '../components/Sandpack';
 import './ConsolePage.scss';
 import { isJsxOpeningLikeElement } from 'typescript';
-
-/**
- * Type for result from get_weather() function call
- */
-interface Coordinates {
-  lat: number;
-  lng: number;
-  location?: string;
-  temperature?: {
-    value: number;
-    units: string;
-  };
-  wind_speed?: {
-    value: number;
-    units: string;
-  };
-}
 
 /**
  * Type for all event logs
@@ -119,11 +101,26 @@ export function ConsolePage() {
   const [canPushToTalk, setCanPushToTalk] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
   const [memoryKv, setMemoryKv] = useState<{ [key: string]: any }>({});
-  const [coords, setCoords] = useState<Coordinates | null>({
-    lat: 37.775593,
-    lng: -122.418137,
+  const [code, setCode] = useState("");
+  const [title, setTitle] = useState("Preview");
+  const [files, setFiles] = useState({
+    'pages/index.js': {
+      code: `export default function Home({ data }) {
+      return (
+        <div>
+          <h1>Generate Next.js Page using <span>{data}</span></h1>
+        </div>
+      );
+    }
+    
+    export function getServerSideProps() {
+      return {
+        props: { data: "OpenAI Realtime API Voice" },
+      }
+    }
+    `
+    }
   });
-  const [marker, setMarker] = useState<Coordinates | null>(null);
 
   /**
    * Utility for formatting the timing of logs
@@ -184,7 +181,7 @@ export function ConsolePage() {
     client.sendUserMessageContent([
       {
         type: `input_text`,
-        text: `Hello!`,
+        text: `Help me generate a Nextjs page!`,
         // text: `For testing purposes, I want you to list ten car brands. Number each item, e.g. "one (or whatever number you are one): the item name".`
       },
     ]);
@@ -202,11 +199,6 @@ export function ConsolePage() {
     setRealtimeEvents([]);
     setItems([]);
     setMemoryKv({});
-    setCoords({
-      lat: 37.775593,
-      lng: -122.418137,
-    });
-    setMarker(null);
 
     const client = clientRef.current;
     client.disconnect();
@@ -411,47 +403,55 @@ export function ConsolePage() {
         return { ok: true };
       }
     );
+
     client.addTool(
       {
-        name: 'get_weather',
+        name: 'generate_nextjs_page',
         description:
-          'Retrieves the weather for a given lat, lng coordinate pair. Specify a label for the location.',
+          'Generates a bug-free Next.js pages router page.js Page() with a given title, code with imports and end to end logic.',
         parameters: {
           type: 'object',
           properties: {
-            lat: {
-              type: 'number',
-              description: 'Latitude',
-            },
-            lng: {
-              type: 'number',
-              description: 'Longitude',
-            },
-            location: {
+            title: {
               type: 'string',
-              description: 'Name of the location',
+              description: 'Title to display on the page. This value will be used for both the page title and the function name, so ensure it is concise and contains only alphanumeric characters.',
+            },
+            content: {
+              type: 'string',
+              description: 'Content should contain the final export of the page component, including any import statements, the component definition, and JSX structure. For example: "export default function Page({ data }) { return (<div><h1>Page Title {data}</h1></div>); }" Note all components must be defined in this single page.',
             },
           },
-          required: ['lat', 'lng', 'location'],
+          required: ['title', 'content'],
         },
-      },
-      async ({ lat, lng, location }: { [key: string]: any }) => {
-        setMarker({ lat, lng, location });
-        setCoords({ lat, lng, location });
-        const result = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,wind_speed_10m`
-        );
-        const json = await result.json();
-        const temperature = {
-          value: json.current.temperature_2m as number,
-          units: json.current_units.temperature_2m as string,
+      },    
+      async ({ title, content}: { [key: string]: any }) => {
+        const tempCode = `${content}`;
+        setCode(tempCode);
+        setTitle(title);
+        const tempFiles =  {
+          'pages/index.js': {
+            code: tempCode.length < 2
+              ? `export default function Home({ data }) {
+          return (
+            <div>
+              <h1>Generate Next.js Page using <span>{data}</span></h1>
+            </div>
+          );
+        }
+        
+        export function getServerSideProps() {
+          return {
+            props: { data: "OpenAI Realtime API Voice" },
+          }
+        }
+        `
+        : tempCode.includes("getServerSideProps")
+          ? tempCode
+          : `"use client";\n${tempCode}`
+          }
         };
-        const wind_speed = {
-          value: json.current.wind_speed_10m as number,
-          units: json.current_units.wind_speed_10m as string,
-        };
-        setMarker({ lat, lng, location, temperature, wind_speed });
-        return json;
+        setFiles(tempFiles);
+        return tempFiles;
       }
     );
 
@@ -508,7 +508,7 @@ export function ConsolePage() {
       <div className="content-top">
         <div className="content-title">
           <img src="/openai-logomark.svg" />
-          <span>realtime console</span>
+          <span>Voice2App: OpenAI Realtime API page generator</span>
         </div>
         <div className="content-api-key">
           {!LOCAL_RELAY_SERVER_URL && (
@@ -665,7 +665,7 @@ export function ConsolePage() {
           <div className="content-actions">
             <Toggle
               defaultValue={false}
-              labels={['manual', 'vad']}
+              labels={['manual', 'auto (vad)']}
               values={['none', 'server_vad']}
               onChange={(_, value) => changeTurnEndType(value)}
             />
@@ -692,31 +692,16 @@ export function ConsolePage() {
           </div>
         </div>
         <div className="content-right">
-          <div className="content-block map">
-            <div className="content-block-title">get_weather()</div>
+          <div className="map">
+            {/* <div className="content-block-title">Preview</div> */}
+            <Sandpack
+              files={files}
+            />
             <div className="content-block-title bottom">
-              {marker?.location || 'not yet retrieved'}
-              {!!marker?.temperature && (
-                <>
-                  <br />
-                  🌡️ {marker.temperature.value} {marker.temperature.units}
-                </>
-              )}
-              {!!marker?.wind_speed && (
-                <>
-                  {' '}
-                  🍃 {marker.wind_speed.value} {marker.wind_speed.units}
-                </>
-              )}
+              {title || 'No page generated yet'}
             </div>
             <div className="content-block-body full">
-              {coords && (
-                <Map
-                  center={[coords.lat, coords.lng]}
-                  location={coords.location}
-                />
-              )}
-            </div>
+          </div>
           </div>
           <div className="content-block kv">
             <div className="content-block-title">set_memory()</div>

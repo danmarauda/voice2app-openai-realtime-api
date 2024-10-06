@@ -4,6 +4,8 @@
   "type": "module",
   "private": true,
   "dependencies": {
+    "@codesandbox/sandpack-react": "^2.19.9",
+    "@codesandbox/sandpack-themes": "^2.0.21",
     "@openai/realtime-api-beta": "github:openai/openai-realtime-api-beta",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",

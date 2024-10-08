@@ -7,7 +7,7 @@ that acts as a **Reference Client** (for browser and Node.js) and
 [`/src/lib/wavtools`](./src/lib/wavtools) which allows for simple audio
 management in the browser.
 
-![image](https://github.com/user-attachments/assets/810bb60c-f993-4f8d-8790-1b51e83cfb93)
+https://github.com/user-attachments/assets/6a97ade6-9a88-4dee-a569-774b5995dc45
 
 # Set your own API Key
 1. Set your API key (saved to local storage)
